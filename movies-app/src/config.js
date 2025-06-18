@@ -1,5 +1,7 @@
-const config = {
-    API_URL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
-};
-
-export default config;
+export async function loadConfig() {
+    const response = await fetch('/config.json');
+    if (!response.ok) {
+        throw new Error('Error fetching config');
+    }
+    return await response.json();
+}

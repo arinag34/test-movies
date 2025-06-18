@@ -85,7 +85,7 @@ const MovieList = () => {
             {status === 'succeeded' && (
                 <ul>
                     {[...filteredMovies]
-                        .sort((a, b) => a.title.localeCompare(b.title))
+                        ?.sort((a, b) => a.title.localeCompare(b.title))
                         .map(movie => (
                         <li key={movie.id} style={{ marginBottom: '10px' }}>
                             <strong>{movie.title}</strong> ({movie.year}) — {movie.format}

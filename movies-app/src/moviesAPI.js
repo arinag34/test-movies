@@ -1,34 +1,50 @@
 import axios from 'axios';
-import config from '../src/config.js';
+import { loadConfig } from './config.js';
 
-const api = axios.create({
-    baseURL: config.API_URL
-});
-
+let api = null;
 let token = null;
+let config = null;
+
+const initApi = async () => {
+    if (api) return;
+
+    config = await loadConfig();
+
+    api = axios.create({
+        baseURL: config.VITE_API_URL
+    });
+};
 
 export const login = async () => {
     if (token) return;
 
+    await initApi();
+
     try {
         const res = await api.post('/sessions', {
-            email: import.meta.env.VITE_API_USER,
-            password: import.meta.env.VITE_API_PASS,
+            email: config.VITE_API_USER,
+            password: config.VITE_API_PASS,
         });
-        token = res.data.token;
+
+        if (res.data.status === 0) {
+            const userRes = await api.post('/users', {
+                email: config.VITE_API_USER,
+                name: config.VITE_API_NAME || 'User',
+                password: config.VITE_API_PASS,
+                confirmPassword: config.VITE_API_PASS,
+            });
+            token = userRes.data.token;
+        } else {
+            token = res.data.token;
+        }
+
+        api.defaults.headers.common['Authorization'] = `${token}`;
+
     } catch (err) {
-        const res = await api.post('/users', {
-            email: import.meta.env.VITE_API_USER,
-            name: import.meta.env.VITE_API_NAME || 'User',
-            password: import.meta.env.VITE_API_PASS,
-            confirmPassword: import.meta.env.VITE_API_PASS,
-        });
-        token = res.data.token;
+        console.error('Error authorizing', err);
+        throw err;
     }
-
-    api.defaults.headers.common['Authorization'] = `${token}`;
 };
-
 
 export const fetchAllMovies = async () => {
     await login();
@@ -49,12 +65,13 @@ export const deleteMovie = async (id) => {
 
 export const addMovie = async (movieData) => {
     await login();
-
     const response = await api.post('/movies', movieData);
     return response.data.data;
 };
 
 export const importMovies = async (file) => {
+    await login();
+
     const formData = new FormData();
     formData.append('movies', file, file.name || 'movies.txt');
 
@@ -64,5 +81,3 @@ export const importMovies = async (file) => {
         }
     });
 };
-
-
